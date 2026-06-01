@@ -13,28 +13,45 @@ class Node:
         self.next = None
 
 class MovieLinkedList:
-    def __init__(self): self.head = None
+    def __init__(self): 
+        self.head = None
+        
     def add_movie(self, title):
         new_node = Node(title)
-        if not self.head: self.head = new_node
+        if not self.head: 
+            self.head = new_node
         else:
             curr = self.head
-            while curr.next: curr = curr.next
+            while curr.next: 
+                curr = curr.next
             curr.next = new_node
+            
     def get_all(self):
         res, curr = [], self.head
-        while curr: res.append(curr.movie_title); curr = curr.next
+        while curr: 
+            res.append(curr.movie_title)
+            curr = curr.next
         return res
 
 class ActionStack:
-    def __init__(self): self.items = []
-    def push(self, item): self.items.append(item)
-    def get_all(self): return self.items[::-1]
+    def __init__(self): 
+        self.items = []
+        
+    def push(self, item): 
+        self.items.append(item)
+        
+    def get_all(self): 
+        return self.items[::-1]
 
 class WatchQueue:
-    def __init__(self): self.items = []
-    def enqueue(self, item): self.items.append(item)
-    def get_all(self): return self.items
+    def __init__(self): 
+        self.items = []
+        
+    def enqueue(self, item): 
+        self.items.append(item)
+        
+    def get_all(self): 
+        return self.items
 
 # ==========================================
 # 2. BÖLÜM: MODEL MİMARİSİ (NCF)
@@ -56,6 +73,7 @@ class NCFModel(nn.Module):
         # forward içindeki isimleri de güncellemeyi unutma
         x = torch.cat([self.user_embed(u), self.item_embed(i)], dim=-1)
         return self.fc_layers(x).squeeze()
+
 # ==========================================
 # 3. BÖLÜM: VERİ VE MODEL YÜKLEME
 # ==========================================
@@ -68,21 +86,22 @@ def load_movies():
 movies_df = load_movies()
 
 def load_trained_model():
-   
     model = NCFModel(num_users=943, num_items=1682) 
     
-    state_dict = torch.load("ncf_model.pth", map_location=torch.device('cpu'))
-    if not isinstance(state_dict, dict):
-        state_dict = state_dict.state_dict()
-        
     try:
+        state_dict = torch.load("ncf_model.pth", map_location=torch.device('cpu'))
+        if not isinstance(state_dict, dict):
+            state_dict = state_dict.state_dict()
+            
         model.load_state_dict(state_dict)
         model.eval()
         return model
+    except FileNotFoundError:
+        return None
     except RuntimeError as e:
-      
         st.error(f"Boyut Uyuşmazlığı: {e}")
         return None
+
 trained_model = load_trained_model()
 
 # ==========================================
@@ -91,15 +110,16 @@ trained_model = load_trained_model()
 st.set_page_config(page_title="Hibrit Öneri Sistemi", layout="wide")
 st.title("🎬 Hibrit Film Öneri Sistemi")
 
-
 # Sidebar Metrikleri
 st.sidebar.header("📊 Model Metrikleri")
 st.sidebar.metric("Eğitim Hatası (RMSE)", "1.5 Yıldız", "-11.5 Düşüş")
 st.sidebar.metric("Seyreklik Oranı", "%93.70")
 
 # State Yönetimi
-if 'history' not in st.session_state: st.session_state.history = ActionStack()
-if 'queue' not in st.session_state: st.session_state.queue = WatchQueue()
+if 'history' not in st.session_state: 
+    st.session_state.history = ActionStack()
+if 'queue' not in st.session_state: 
+    st.session_state.queue = WatchQueue()
 
 col1, col2 = st.columns([2, 1])
 
@@ -119,15 +139,22 @@ with col1:
             recs = movies_df.iloc[top_idx]['movie_title'].tolist()
             
             st.subheader("🤖 NCF Model Önerileri")
-            for r in recs: st.success(f"🎥 {r}")
+            for r in recs: 
+                st.success(f"🎥 {r}")
         else:
-            st.warning("Model dosyası yükleniyor veya bulunamadı.")
+            st.warning("Model dosyası ('ncf_model.pth') bulunamadı veya yüklenemedi.")
 
     st.divider()
 
     # 2. Öneri: Content-Based (Arama)
-# 2. Öneri: Content-Based (Arama)
     sel_movie = st.selectbox("Bir film seçin:", movies_df['movie_title'].values)
+
+    # --- KUYRUK İÇİN EKLENEN YENİ BUTON ---
+    if st.button("➕ İzleme Sırasına Ekle"):
+        st.session_state.queue.enqueue(sel_movie)
+        st.success(f"'{sel_movie}' izleme sırasına başarıyla eklendi!")
+    # -------------------------------------
+
     if st.button("🔍 Benzer Filmleri Bul"):
         st.session_state.history.push(sel_movie)
         
@@ -153,7 +180,8 @@ with col1:
 
         st.subheader(f"✨ '{sel_movie}' Benzerleri")
         st.caption("Bu sonuçlar matematiksel Kosinüs Benzerliği kullanılarak hesaplanmıştır.")
-        for r in recs: st.info(f"🎞️ {r}")
+        for r in recs: 
+            st.info(f"🎞️ {r}")
 
 with col2:
     st.subheader("📚 Veri Yapıları Paneli")
